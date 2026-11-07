@@ -492,6 +492,7 @@ def _load_env_file(path: Path | None) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run a preset-driven script pipeline.")
     parser.add_argument("--produces-dir", type=Path, required=True)
+    parser.add_argument("--out", type=Path, help="Host output root; the result receipt is written there as manifest.json.")
     parser.add_argument("--preset", default=DEFAULT_PRESET, help="Built-in preset name or path to YAML/JSON.")
     parser.add_argument("--config", type=Path, help="Explicit YAML/JSON preset config path.")
     parser.add_argument("--prompt", help="Scene brief override.")
@@ -541,7 +542,13 @@ def main(argv: list[str] | None = None) -> int:
         subprocess.run(["open", str(manifest["selected_scene"])], check=False)
 
     # --- universal result manifest -----------------------
-    result_manifest_path = args.produces_dir / "result_manifest.json"
+    # The host harvests {out}/manifest.json; produces/manifest.json is the pipeline's own record.
+    if args.out is not None:
+        result_manifest_path = args.out / "manifest.json"
+        prefix = args.produces_dir.resolve().relative_to(args.out.resolve()).as_posix() + "/"
+    else:
+        result_manifest_path = args.produces_dir / "result_manifest.json"
+        prefix = ""
     result_manifest = build_manifest(
         kind="script_pipeline",
         inputs={
@@ -550,9 +557,8 @@ def main(argv: list[str] | None = None) -> int:
             "produces_dir": str(args.produces_dir),
         },
         outputs=[
-            {"path": "selected_scene.md", "type": "file"},
-            {"path": "manifest.json", "type": "file"},
-            {"path": "candidates", "type": "directory"},
+            {"name": "selected_scene", "path": prefix + "selected_scene.md", "type": "file"},
+            {"name": "manifest", "path": prefix + "manifest.json", "type": "file"},
         ],
         created=datetime.now(timezone.utc).isoformat(),
     )

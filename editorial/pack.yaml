@@ -1066,6 +1066,8 @@ actions:
         - astrid.packs.editorial.actions.script_pipeline.run
         - --produces-dir
         - '{out}/produces'
+        - --out
+        - '{out}'
     resources:
     - kind: documentation
       path: actions/script_pipeline/STAGE.md
